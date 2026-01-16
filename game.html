@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Animal Escape – CI Lab</title>
+<style>
+body{
+  margin:0;
+  font-family:Segoe UI, Arial, sans-serif;
+  background:
+    linear-gradient(rgba(2,6,23,0.7),rgba(2,6,23,0.7)),
+    url("bg.png") center center no-repeat;
+  background-size:cover;
+  color:#e5e7eb;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.game{
+  position:relative;
+  width:92%;
+  max-width:760px;
+  background:rgba(2,6,23,0.85);
+  backdrop-filter:blur(6px);
+  border-radius:18px;
+  padding:30px;
+}
+.player-badge{
+  position:absolute;
+  top:-26px;
+  left:-26px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:rgba(2,6,23,0.95);
+  padding:10px 14px;
+  border-radius:999px;
+}
+.player-badge img{
+  width:44px;height:44px;border-radius:50%;
+  border:3px solid #22c55e;
+}
+.actions{
+  position:absolute;
+  top:-26px;
+  right:-26px;
+  display:flex;
+  gap:10px;
+}
+.action-btn{
+  width:42px;height:42px;border-radius:50%;
+  background:rgba(2,6,23,0.95);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:18px;
+}
+header{text-align:center;margin-bottom:10px;}
+.level{text-align:center;color:#a5f3fc;}
+.timer{text-align:center;font-size:22px;color:#38bdf8;margin:10px 0;}
+.score{text-align:center;color:#22c55e;margin-bottom:10px;}
+.riddle{
+  background:#0f172a;
+  border-radius:14px;
+  padding:20px;
+  white-space:pre-line;
+}
+.answer-boxes{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin:22px 0;
+}
+.answer-boxes input{
+  width:38px;height:46px;
+  text-align:center;font-size:22px;
+  border-radius:8px;
+}
+button{
+  width:100%;
+  padding:16px;
+  background:#22c55e;
+  border:none;border-radius:12px;
+  font-weight:700;
+}
+.feedback{
+  text-align:center;
+  margin-top:16px;
+  min-height:28px;
+}
+</style>
+</head>
+<body>
+
+<div class="game">
+
+<div class="player-badge">
+  <img src="avatars/avatar1.png">
+  <strong id="playerName">Player</strong>
+</div>
+
+<div class="actions">
+  <div class="action-btn" onclick="restartGame()">⟳</div>
+  <div class="action-btn" onclick="goHome()">⌂</div>
+</div>
+
+<header>
+<h1>Animal Escape</h1>
+<p>Continuous Improvement Lab</p>
+</header>
+
+<div class="level" id="level"></div>
+<div class="timer" id="timer"></div>
+<div class="score" id="score"></div>
+
+<div class="riddle" id="riddle"></div>
+<div class="answer-boxes" id="boxes"></div>
+<button id="submit">Unlock</button>
+<div class="feedback" id="feedback"></div>
+
+</div>
+
+<script>
+document.getElementById("playerName").textContent =
+ localStorage.getItem("playerName") || "Player";
+
+function goHome(){ window.location.href="index.html"; }
+
+const levels=[
+{r:`I never write things down
+Yet I never forget
+I learn from the past
+To improve the future
+Who am I?`,a:"elephant",m:"Memory drives improvement."},
+{r:`We are small but unstoppable
+We follow clear paths
+Each of us does one task
+Together we move mountains
+Who are we?`,a:"ants",m:"Processes beat effort."},
+{r:`I move only when necessary
+I see clearly in the dark
+I wait, observe, then act
+Which animal am I?`,a:"owl",m:"Observe before acting."},
+{r:`I am slow but I finish
+I never rush
+I win by consistency
+Who am I?`,a:"tortoise",m:"Consistency wins."},
+{r:`I am strong alone
+But unstoppable together
+I rely on the group
+To survive and succeed
+Who am I?`,a:"wolf",m:"Teams multiply results."},
+{r:`My work is identical every time
+Perfect shapes
+No wasted effort
+Pure efficiency
+What animal am I?`,a:"bee",m:"Standard work creates quality."},
+{r:`I fly above the noise
+I see the whole system
+I focus far ahead
+What animal am I?`,a:"eagle",m:"Vision matters."},
+{r:`I change my colors
+To fit the environment
+I adapt quickly
+Who am I?`,a:"chameleon",m:"Adaptability keeps value."},
+{r:`I work at night
+Quiet and unnoticed
+But essential
+Who am I?`,a:"bat",m:"Hidden work matters."},
+{r:`I build strong structures
+Patiently and together
+Against the flow
+Who am I?`,a:"beaver",m:"Foundations enable growth."},
+{r:`I survive harsh conditions
+With little waste
+Efficient by nature
+Who am I?`,a:"camel",m:"Efficiency protects resources."},
+{r:`I migrate long distances
+With perfect timing
+Never guessing
+Who am I?`,a:"bird",m:"Planning prevents chaos."}
+];
+
+let i=0,time=120,score=0,interval;
+const levelEl=document.getElementById("level");
+const timerEl=document.getElementById("timer");
+const scoreEl=document.getElementById("score");
+const riddleEl=document.getElementById("riddle");
+const boxesEl=document.getElementById("boxes");
+const feedback=document.getElementById("feedback");
+const btn=document.getElementById("submit");
+
+function buildBoxes(len){
+ boxesEl.innerHTML="";
+ for(let x=0;x<len;x++){
+  const inp=document.createElement("input");
+  inp.maxLength=1;
+  inp.oninput=()=>{if(inp.nextSibling)inp.nextSibling.focus();};
+  boxesEl.appendChild(inp);
+ }
+}
+
+function load(){
+ clearInterval(interval);
+ time=70;
+ feedback.textContent="";
+ levelEl.textContent=`Question ${i+1} of ${levels.length}`;
+ scoreEl.textContent=`Score: ${score}`;
+ riddleEl.textContent=levels[i].r;
+ buildBoxes(levels[i].a.length);
+ update();
+ interval=setInterval(tick,1000);
+}
+
+function tick(){
+ time--;
+ update();
+ if(time<=0)autoUnlock();
+}
+
+function update(){
+ let m=Math.floor(time/60),s=time%60;
+ timerEl.textContent=`Time Left ${m}:${s.toString().padStart(2,"0")}`;
+}
+
+function getAnswer(){
+ return [...boxesEl.children].map(i=>i.value.toLowerCase()).join("");
+}
+
+function autoUnlock(){
+ clearInterval(interval);
+ feedback.textContent=levels[i].m+" (Auto unlocked)";
+ setTimeout(next,2500);
+}
+
+btn.onclick=()=>{
+ if(getAnswer()===levels[i].a){
+  clearInterval(interval);
+  score+=time;
+  feedback.textContent=levels[i].m+` (+${time})`;
+  setTimeout(next,2500);
+ }else{
+  feedback.textContent="Keep trying.";
+ }
+}
+
+function next(){
+ i++;
+ if(i<levels.length){load();}
+ else{
+  riddleEl.textContent=`🎉 You Escaped 🎉
+Final Score: ${score}
+Continuous improvement is learning, consistency, and vision.`;
+  boxesEl.innerHTML="";
+  btn.style.display="none";
+  timerEl.textContent="";
+  scoreEl.textContent="";
+  feedback.textContent="Final Password: IMPROVE";
+ }
+}
+
+function restartGame(){
+ clearInterval(interval);
+ i=0;score=0;
+ load();
+}
+
+load();
+</script>
+
+</body>
+</html>
